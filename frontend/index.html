@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retail Demand Forecasting Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="dark-theme">
+    <div class="background-accents">
+        <div class="accent-blob blob-1"></div>
+        <div class="accent-blob blob-2"></div>
+        <div class="accent-blob blob-3"></div>
+    </div>
+
+    <nav class="top-nav">
+        <div class="nav-brand">
+            <i class="fa-solid fa-chart-line logo-icon"></i>
+            <span>RetailAI Predictor</span>
+        </div>
+        <div class="nav-actions">
+            <button class="icon-btn" id="theme-toggle" title="Toggle Theme">
+                <i class="fa-solid fa-sun"></i>
+            </button>
+            <button class="icon-btn" id="export-btn" title="Export PDF">
+                <i class="fa-solid fa-file-export"></i>
+            </button>
+        </div>
+    </nav>
+
+    <main class="dashboard-container">
+        
+        <!-- Left Column: Input Panel -->
+        <section class="input-panel glass-card">
+            <header class="panel-header">
+                <h2>Generate Forecast</h2>
+                <p>Configure parameters to run prediction.</p>
+            </header>
+
+            <form id="forecast-form">
+                <div class="input-group">
+                    <label for="category"><i class="fa-solid fa-box-open input-icon"></i> Category</label>
+                    <div class="select-wrapper">
+                        <select id="category" name="category" required>
+                            <option value="" disabled selected>Select a category</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down select-arrow"></i>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label for="product"><i class="fa-solid fa-cart-shopping input-icon"></i> Product</label>
+                    <div class="select-wrapper">
+                        <select id="product" name="product" required disabled>
+                            <option value="" disabled selected>Select a product</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down select-arrow"></i>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label for="date"><i class="fa-solid fa-calendar-days input-icon"></i> Forecast Date</label>
+                    <input type="date" id="date" name="date" required>
+                </div>
+
+                <div class="input-group">
+                    <label for="weather"><i class="fa-solid fa-cloud-sun input-icon"></i> Weather</label>
+                    <div class="select-wrapper">
+                        <select id="weather" name="weather" required>
+                            <option value="" disabled selected>Select weather</option>
+                            <option value="Sunny">Sunny</option>
+                            <option value="Cloudy">Cloudy</option>
+                            <option value="Rainy">Rainy</option>
+                            <option value="Storm">Storm</option>
+                            <option value="Heatwave">Heatwave</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down select-arrow"></i>
+                    </div>
+                </div>
+
+                <div id="error-message" class="error-message hidden">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    <span id="error-text"></span>
+                </div>
+
+                <button type="submit" id="submit-btn" class="submit-btn highlight-btn">
+                    <span class="btn-text">Run Prediction Engine <i class="fa-solid fa-wand-magic-sparkles"></i></span>
+                    <div class="loader hidden"></div>
+                </button>
+            </form>
+        </section>
+
+        <!-- Right Column: Results & Analytics (Initially hidden placeholders or empty states) -->
+        <section class="results-panel">
+            
+            <div id="empty-state" class="empty-state glass-card">
+                <div class="empty-icon-wrap">
+                    <i class="fa-solid fa-robot"></i>
+                </div>
+                <h3>Ready to predict</h3>
+                <p>Fill in the details on the left and run the prediction engine to see advanced analytics and insights.</p>
+            </div>
+
+            <div id="dashboard-content" class="dashboard-content hidden">
+                <!-- Top Metric Row -->
+                <div class="metrics-grid">
+                    <div class="metric-card glass-card primary-gradient">
+                        <div class="metric-title">Predicted Demand</div>
+                        <div class="metric-value" id="predicted-demand">0</div>
+                        <div class="metric-subtitle">Units expected</div>
+                    </div>
+                    
+                </div>
+
+                <!-- Smart Insights -->
+                <div class="insights-card glass-card">
+                    <h3><i class="fa-solid fa-lightbulb text-warning"></i> Smart Insights</h3>
+                    <ul class="insights-list" id="insights-list">
+                        <!-- Insights injected by JS -->
+                    </ul>
+                </div>
+
+                <!-- Charts Row -->
+                <div class="charts-grid">
+                    <div class="chart-container glass-card">
+                        <div class="chart-header">
+                            <h3>Demand Trend Analysis</h3>
+                        </div>
+                        <div class="canvas-wrapper">
+                            <canvas id="trendChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-container glass-card">
+                        <div class="chart-header">
+                            <h3>Current vs Predicted</h3>
+                        </div>
+                        <div class="canvas-wrapper">
+                            <canvas id="comparisonChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
