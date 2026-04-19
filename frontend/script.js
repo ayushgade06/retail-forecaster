@@ -5,7 +5,7 @@ const form = document.getElementById('forecast-form');
 const categorySelect = document.getElementById('category');
 const productSelect = document.getElementById('product');
 const dateInput = document.getElementById('date');
-const weatherInput = document.getElementById('weather');
+const locationInput = document.getElementById('location');
 
 const submitBtn = document.getElementById('submit-btn');
 const btnText = document.querySelector('.btn-text');
@@ -18,6 +18,8 @@ const dashboardContent = document.getElementById('dashboard-content');
 
 const predictedDemandEl = document.getElementById('predicted-demand');
 const recommendedStockEl = document.getElementById('recommended-stock');
+const weatherStatusEl = document.getElementById('weather-status');
+const weatherIconEl = document.getElementById('weather-icon');
 const insightsList = document.getElementById('insights-list');
 
 const themeToggleBtn = document.getElementById('theme-toggle');
@@ -33,7 +35,18 @@ Chart.defaults.font.family = "'Inter', sans-serif";
 
 // Initialization
 document.addEventListener('DOMContentLoaded', () => {
-    dateInput.valueAsDate = new Date();
+    const today = new Date();
+    dateInput.valueAsDate = today;
+    
+    // Calculate calendar 7-day limits
+    const minDate = today.toISOString().split('T')[0];
+    const maxDateObj = new Date();
+    maxDateObj.setDate(today.getDate() + 7);
+    const maxDate = maxDateObj.toISOString().split('T')[0];
+    
+    dateInput.setAttribute('min', minDate);
+    dateInput.setAttribute('max', maxDate);
+
     fetchCategories();
     initTheme();
 });
@@ -143,9 +156,9 @@ form.addEventListener('submit', async (e) => {
     const category = categorySelect.value;
     const product = productSelect.value;
     const date = dateInput.value;
-    const weather = weatherInput.value;
+    const location = locationInput.value;
     
-    if (!category || !product || !date || !weather) {
+    if (!category || !product || !date || !location) {
         showError('Please fill in all fields correctly.');
         return;
     }
@@ -156,13 +169,17 @@ form.addEventListener('submit', async (e) => {
         const response = await fetch(`${API_BASE_URL}/predict`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ category, product, date, weather })
+            body: JSON.stringify({ category, product, date, location })
         });
         
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || 'Prediction engine error');
         
-        processPrediction(data.predicted_demand, weather, date, product);
+        // Fetch real history from CSV
+        const histResponse = await fetch(`${API_BASE_URL}/history?product=${encodeURIComponent(product)}`);
+        const histData = await histResponse.json();
+        
+        processPrediction(data.predicted_demand, data.weather_condition, date, product, location, histData.history || []);
         
     } catch (err) {
         showError(err.message);
@@ -193,7 +210,7 @@ function hideError() {
 }
 
 // Data Processing & Dashboard Update
-function processPrediction(demand, weather, dateStr, product) {
+function processPrediction(demand, weather, dateStr, product, location, history) {
     // Hide empty state, show dashboard
     emptyState.classList.add('hidden');
     dashboardContent.classList.remove('hidden');
@@ -201,8 +218,8 @@ function processPrediction(demand, weather, dateStr, product) {
     const demandVal = Math.round(demand);
     
     // Calculate stock recommendation logic (15% to 20% buffer)
-    const bufferPct = 0.15 + (Math.random() * 0.05); // between 15-20%
-    const recommendedStock = Math.ceil(demandVal * (1 + bufferPct));
+    const pseudoBuffer = 0.15 + (Math.abs(Math.sin(demandVal + product.length)) * 0.05); // pseudo-random deterministic buffer 15-20%
+    const recommendedStock = Math.ceil(demandVal * (1 + pseudoBuffer));
     
     // Update Number Displays with Animation
     animateValue(predictedDemandEl, parseInt(predictedDemandEl.textContent) || 0, demandVal, 1500);
@@ -210,14 +227,32 @@ function processPrediction(demand, weather, dateStr, product) {
         animateValue(recommendedStockEl, parseInt(recommendedStockEl.textContent) || 0, recommendedStock, 1500);
     }, 300); // Stagger animation
 
+    // Update Weather Badge
+    updateWeatherBadge(weather);
+
     // Generate Insights
-    generateInsights(demandVal, recommendedStock, weather, product);
+    generateInsights(demandVal, recommendedStock, weather, product, location);
 
     // Update Charts
-    updateCharts(demandVal, dateStr, product);
+    updateCharts(demandVal, dateStr, product, history);
 }
 
-function generateInsights(demand, stock, weather, product) {
+function updateWeatherBadge(weather) {
+    weatherStatusEl.textContent = weather;
+    let icon = 'fa-cloud-sun';
+    
+    switch(weather) {
+        case 'Sunny': icon = 'fa-sun'; break;
+        case 'Cloudy': icon = 'fa-cloud'; break;
+        case 'Rainy': icon = 'fa-cloud-showers-heavy'; break;
+        case 'Storm': icon = 'fa-cloud-bolt'; break;
+        case 'Heatwave': icon = 'fa-temperature-high'; break;
+    }
+    
+    weatherIconEl.innerHTML = `<i class="fa-solid ${icon}"></i>`;
+}
+
+function generateInsights(demand, stock, weather, product, location) {
     insightsList.innerHTML = ''; // clear existing
     
     const addInsight = (type, icon, text) => {
@@ -226,6 +261,9 @@ function generateInsights(demand, stock, weather, product) {
         li.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${text}</span>`;
         insightsList.appendChild(li);
     };
+
+    // Location/Weather contextualization
+    addInsight('info', 'fa-location-dot', `Analyzed using accurate external meteorological data forecasted for ${location}.`);
 
     // Demand context
     if(demand > 40) {
@@ -236,9 +274,9 @@ function generateInsights(demand, stock, weather, product) {
 
     // Weather impact
     if (weather === 'Heatwave' || weather === 'Sunny') {
-        addInsight('warning', 'fa-sun', `Sunny or Heatwave conditions detected, which may increase store traffic and particular demand.`);
+        addInsight('warning', 'fa-sun', `Sunny or Heatwave conditions detected locally, which may increase store traffic and particular demand.`);
     } else if (weather === 'Storm' || weather === 'Rainy') {
-        addInsight('warning', 'fa-cloud-rain', `Inclement weather detected. Predicting shifts in category interest and footfall.`);
+        addInsight('warning', 'fa-cloud-rain', `Inclement weather detected locally. Predicting shifts in category interest and footfall.`);
     }
 
     // Stock advice
@@ -246,30 +284,25 @@ function generateInsights(demand, stock, weather, product) {
 }
 
 // Charting Logic
-function updateCharts(predictedDemand, dateStr, product) {
+function updateCharts(predictedDemand, dateStr, product, history) {
     const isLight = document.body.classList.contains('light-theme');
     const textColor = isLight ? '#475569' : '#94a3b8';
     const gridColor = isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)';
 
-    // 1. Trend Chart (Mocking historical data leading up to prediction)
+    // 1. Trend Chart (Using real history + prediction)
     const trendCtx = document.getElementById('trendChart').getContext('2d');
     
-    const dates = [];
-    const historicalData = [];
+    const labels = history.map(h => {
+        const d = new Date(h.date);
+        return d.toLocaleDateString('en-US', {month:'short', day:'numeric', year: '2-digit'});
+    });
     
-    // Generate 5 days of mock historical past
-    const targetDate = new Date(dateStr);
-    for(let i=5; i>0; i--) {
-        const d = new Date(targetDate);
-        d.setDate(d.getDate() - i);
-        dates.push(d.toLocaleDateString('en-US', {month:'short', day:'numeric'}));
-        // Random historical data roughly around predicted value
-        const variance = (Math.random() - 0.5) * 15;
-        historicalData.push(Math.max(0, Math.round(predictedDemand * 0.8 + variance)));
-    }
+    // Add current prediction label
+    const predDate = new Date(dateStr);
+    labels.push(`${predDate.toLocaleDateString('en-US', {month:'short', day:'numeric'})} (FC)`);
     
-    dates.push(new Date(dateStr).toLocaleDateString('en-US', {month:'short', day:'numeric'}));
-    const chartData = [...historicalData, predictedDemand];
+    const chartData = history.map(h => h.demand);
+    chartData.push(predictedDemand);
 
     // Colors
     const primaryColor = '#6366f1';
@@ -279,17 +312,17 @@ function updateCharts(predictedDemand, dateStr, product) {
     trendChart = new Chart(trendCtx, {
         type: 'line',
         data: {
-            labels: dates,
+            labels: labels,
             datasets: [{
-                label: 'Demand Trend',
+                label: 'Units Sold',
                 data: chartData,
                 borderColor: primaryColor,
                 backgroundColor: 'rgba(99, 102, 241, 0.1)',
                 borderWidth: 3,
                 tension: 0.4,
                 fill: true,
-                pointBackgroundColor: [...Array(5).fill(primaryColor), '#ec4899'], // Highlight predicted point
-                pointRadius: [...Array(5).fill(4), 8],
+                pointBackgroundColor: [...Array(history.length).fill(primaryColor), '#ec4899'], // Highlight predicted point
+                pointRadius: [...Array(history.length).fill(4), 8],
                 pointHoverRadius: 10
             }]
         },
@@ -300,7 +333,7 @@ function updateCharts(predictedDemand, dateStr, product) {
                 legend: { display: false },
                 tooltip: {
                     callbacks: {
-                        label: (ctx) => ctx.dataIndex === 5 ? `Predicted: ${ctx.raw}` : `Historical: ${ctx.raw}`
+                        label: (ctx) => ctx.dataIndex === chartData.length - 1 ? `Predicted: ${ctx.raw}` : `Actual: ${ctx.raw}`
                     }
                 }
             },
@@ -313,7 +346,11 @@ function updateCharts(predictedDemand, dateStr, product) {
 
     // 2. Comparison Chart
     const compCtx = document.getElementById('comparisonChart').getContext('2d');
-    const avgDemand = Math.max(0, Math.round(predictedDemand * 0.85)); // Mock average
+    
+    // Real average from history
+    const avgDemand = history.length > 0 
+        ? Math.round(history.reduce((a, b) => a + b.demand, 0) / history.length)
+        : 0;
     
     if(comparisonChart) comparisonChart.destroy();
     

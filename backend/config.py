@@ -18,5 +18,5 @@ class Config:
         "DATA_PATH",
         os.path.join(BASE_DIR, "data.csv")
     )
-
+    OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY") 
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")

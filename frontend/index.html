@@ -67,15 +67,14 @@
                 </div>
 
                 <div class="input-group">
-                    <label for="weather"><i class="fa-solid fa-cloud-sun input-icon"></i> Weather</label>
+                    <label for="location"><i class="fa-solid fa-location-dot input-icon"></i> Location</label>
                     <div class="select-wrapper">
-                        <select id="weather" name="weather" required>
-                            <option value="" disabled selected>Select weather</option>
-                            <option value="Sunny">Sunny</option>
-                            <option value="Cloudy">Cloudy</option>
-                            <option value="Rainy">Rainy</option>
-                            <option value="Storm">Storm</option>
-                            <option value="Heatwave">Heatwave</option>
+                        <select id="location" name="location" required>
+                            <option value="" disabled selected>Select a location</option>
+                            <option value="Pune">Pune</option>
+                            <option value="Mumbai">Mumbai</option>
+                            <option value="Nagpur">Nagpur</option>
+                            <option value="Kolhapur">Kolhapur</option>
                         </select>
                         <i class="fa-solid fa-chevron-down select-arrow"></i>
                     </div>
@@ -113,6 +112,17 @@
                         <div class="metric-subtitle">Units expected</div>
                     </div>
                     
+                    <div class="metric-card glass-card success-gradient">
+                        <div class="metric-title">Recommended Stock</div>
+                        <div class="metric-value" id="recommended-stock">0</div>
+                        <div class="metric-subtitle">Includes safety buffer</div>
+                    </div>
+
+                    <div class="metric-card glass-card info-gradient" id="weather-badge">
+                        <div class="metric-title">Detected Weather</div>
+                        <div class="metric-icon-huge" id="weather-icon"><i class="fa-solid fa-cloud-sun"></i></div>
+                        <div class="metric-subtitle" id="weather-status">Calculating...</div>
+                    </div>
                 </div>
 
                 <!-- Smart Insights -->
